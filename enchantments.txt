@@ -1,0 +1,10 @@
+####### current type  = EnchantUnit
+2/11/2015 1:24:31 PM :: Running effect (45): EnchantUnit -- EMEnchantUnit
+{"EnchantUnit":{"target":{"color":"black","position":"2,0"},"enchantTags":["curse"]}
+
+OR
+
+####### current type  = StatsUpdate
+2/11/2015 1:24:24 PM :: Running effect (1): StatsUpdate -- EMStatsUpdate
+{"StatsUpdate":{"target":{"color":"black","position":"2,0"},"hp":4,"ap":0,"ac":-1,"buffs":[{"name":"Plating","description":"Enchanted unit disregards next attack or damage taken. Plating is removed afterwards.","type":"ENCHANTMENT"}]}
+ 
