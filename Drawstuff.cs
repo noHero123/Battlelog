@@ -7,11 +7,15 @@ using System.Reflection;
 
 namespace Battlelog.Mod
 {
-    class Drawstuff
+
+    
+
+    public class Drawstuff : MonoBehaviour
     {
-        Vector2 chatScroll = new Vector2();
+        public Vector2 chatScroll = new Vector2();
         Vector2 chatScroll2 = new Vector2();
         private GUIStyle chatLogStyle;
+        public Mod moddingmod;
 
         int ownMenu = 2;
         int enemyMenu = 0;
@@ -52,8 +56,22 @@ namespace Battlelog.Mod
         private float currentCursor = 0f;
         Settings sttngs;
 
-        private bool optionmenu = false;
+        List<string> copyBattlelog = new List<string>();
+        public bool scrollbarWasDown=false;
 
+
+        private bool optionmenu = false;
+       
+
+        public void Start()
+        {
+            Console.WriteLine("drawstuff: hello world staart");
+        }
+        public void Init()
+        {
+            Console.WriteLine("drawstuff: hello world init");
+        }
+        
         private static Drawstuff instance;
 
         public static Drawstuff Instance
@@ -68,16 +86,32 @@ namespace Battlelog.Mod
             }
         }
 
+        public void OnGUI()
+        {
+            this.draw(this.moddingmod.battlelog);
+        }
+
         private Drawstuff()
         {
             chatLogStyleinfo = typeof(ChatUI).GetField("chatLogStyle", BindingFlags.Instance | BindingFlags.NonPublic);
             this.setskins((GUISkin)ResourceManager.Load("_GUISkins/CardListPopup"), (GUISkin)ResourceManager.Load("_GUISkins/CardListPopupGradient"), (GUISkin)ResourceManager.Load("_GUISkins/CardListPopupBigLabel"), (GUISkin)ResourceManager.Load("_GUISkins/CardListPopupLeftButton"));
             setRects();
+            
         }
 
         public void setSettings(Settings s)
         {
             this.sttngs = s;
+
+            this.osize = cardListPopupBigLabelSkin.label.fontSize;
+
+            if (this.sttngs.size != 0)
+            {
+                cardListPopupSkin.label.fontSize = this.sttngs.size;
+                cardListPopupBigLabelSkin.label.fontSize = this.sttngs.size;
+            }
+
+            this.ownsmall = !this.sttngs.openonStart;
         }
 
         public void scrollDown()
@@ -99,7 +133,14 @@ namespace Battlelog.Mod
 
         public void draw( List<String> battlelog )
         {
-            setRects();
+            
+            if (Event.current.type == EventType.Layout)//works only theoretical ;D
+            {
+                setRects();
+                this.copyBattlelog = new List<string>(battlelog);
+            }
+
+            //Console.WriteLine("##" + Event.current.type + " " + this.copyBattlelog.Count );
             //Console.WriteLine("drawlol " + this.smallownrect.x + " " + this.smallownrect.y + " " + this.smallownrect.xMax +  " " + this.smallownrect.yMax);
             GUI.color = Color.white;
             GUI.skin = cardListPopupSkin;
@@ -113,8 +154,8 @@ namespace Battlelog.Mod
             }
             else
             {
-                try
-                {
+                //try
+                //{
                     GUI.Box(this.bigownrect, string.Empty);
                     GUI.Box(this.closeownrect, string.Empty);
                     if (GUI.Button(this.closeownrect, "Minimize"))
@@ -128,6 +169,8 @@ namespace Battlelog.Mod
                         if (this.optionmenu)
                         {
                             this.sttngs.saveSettings();
+                            this.moddingmod.battlelog.Clear();
+                            this.moddingmod.battlelog = BigLogEntry.getLogsfromBigLogList(this.moddingmod.bigBattleLog, this.sttngs);
                         }
                         else
                         {
@@ -135,53 +178,28 @@ namespace Battlelog.Mod
                         }
                         this.optionmenu = !this.optionmenu;
                     }
-
-                    /*if (GUI.Button(this.boardrectown, "+"))
-                    {
-                        this.ownMenu = 1;
-                        cardListPopupSkin.label.fontSize = (int)(cardListPopupSkin.label.fontSize + 1);
-                        cardListPopupBigLabelSkin.label.fontSize = (int)(cardListPopupBigLabelSkin.label.fontSize + 1);
-                    }
-
-                    if (GUI.Button(this.genrectown, "-"))
-                    {
-                        this.ownMenu = 0;
-                        cardListPopupSkin.label.fontSize = (int)(cardListPopupSkin.label.fontSize - 1);
-                        cardListPopupBigLabelSkin.label.fontSize = (int)(cardListPopupBigLabelSkin.label.fontSize - 1);
-                    }
-                    
-                    if (GUI.Button(this.dynamicrectown, "R"))
-                    {
-                        this.ownMenu = 2;
-                        cardListPopupSkin.label.fontSize = (int)(this.osize);
-                        cardListPopupBigLabelSkin.label.fontSize = (int)(this.osize);
-                    }
-
-                    if (this.ownMenu == 2 && this.osize == 0)
-                    {
-                        this.osize = cardListPopupBigLabelSkin.label.fontSize;
-                    }*/
-
-
-
-                    GUILayout.BeginArea(this.bigownrect);
-                    GUI.skin = this.cardListPopupSkin;
+       
 
                     if (this.optionmenu)
                     {
+                        GUILayout.BeginArea(this.bigownrect);
+                        GUI.skin = this.cardListPopupSkin;
                         this.chatScroll2 = GUILayout.BeginScrollView(this.chatScroll2, new GUILayoutOption[] { GUILayout.Width(this.bigownrect.width), GUILayout.Height(this.bigownrect.height) });
 
                         
 
                         this.drawOptions();
-                        
 
 
-                        //end layout
                         GUILayout.EndScrollView();
+                        GUILayout.EndArea();
+                        //end layout
+                        
                     }
                     else
                     {
+                        GUILayout.BeginArea(this.bigownrect);
+                        GUI.skin = this.cardListPopupSkin;
                         this.chatScroll = GUILayout.BeginScrollView(this.chatScroll, new GUILayoutOption[] { GUILayout.Width(this.bigownrect.width), GUILayout.Height(this.bigownrect.height) });
 
 
@@ -191,32 +209,58 @@ namespace Battlelog.Mod
                         //GUI.skin.label.wordWrap = true;
 
                         //calculate chat-length
-                        drawdata(battlelog);
+                        try
+                        {
 
-                        GUILayout.EndScrollView();
+                            drawdata(this.copyBattlelog);
+
+                        }
+                        catch 
+                        {
+                            Console.WriteLine("typical unity error :D");
+                            if (this.scrollbarWasDown)
+                            {
+                                this.chatScroll.y = int.MaxValue;
+                            }
+                        }
+
+                            GUILayout.EndScrollView();
+                            GUILayout.EndArea();
                     }
-                    GUILayout.EndArea();
+                    
 
-                }
-                catch
+                   
+
+                /*}
+                catch (Exception exception)
                 {
-                }
+                    string fullStackTrace = exception.StackTrace + Environment.StackTrace;
+                    Console.WriteLine("##bttllogerror: " + fullStackTrace);
+                }*/
             }
             GUI.skin = cardListPopupSkin;
 
+            
         }
 
         public void drawdata(List<string> battlelog)
         {
             //GUI.skin = cardListPopupBigLabelSkin;
             bool didsomething =false;
-            for (int i = 0; i < battlelog.Count; i++)
+            //for (int i = 0; i < battlelog.Count; i++)
+            foreach (string text in battlelog)
             {
                 GUILayout.BeginHorizontal(new GUILayoutOption[0]);
-                string text = battlelog[i];
 
-                /*
-                string t = battlelog[i];
+                //string text = battlelog[i];
+
+
+                GUILayout.Label(text);
+
+                didsomething = true;
+                GUILayout.EndHorizontal();
+
+                /*string t = battlelog[i];
                 bool energyicon = false;
                 if (t.Contains(" for ENERGY"))
                 {
@@ -225,35 +269,41 @@ namespace Battlelog.Mod
 
                 }
 
-                
+
                 if (energyicon)
                 {
-                    GUILayout.Label( new GUIContent( energyres, text));
+                    GUILayout.Label(new GUIContent(energyres, text));
 
                     //or 
-                    GUILayout.Label(energyres, new GUILayoutOption[] { GUILayout.Width(GUI.skin.label.fontSize+4), GUILayout.Height(GUI.skin.label.fontSize+4) });
+                    GUILayout.Label(energyres, new GUILayoutOption[] { GUILayout.Width(GUI.skin.label.fontSize + 4), GUILayout.Height(GUI.skin.label.fontSize + 4) });
                     GUILayout.Label(" ");
                 }
                 else
                 {
                     GUILayout.Label(text);
-                } 
-                */
+                }*/
 
-                GUILayout.Label(text);
-                didsomething=true;
-                GUILayout.EndHorizontal();
+
             }
-
-            if (didsomething)
+            if (didsomething && Event.current.type == EventType.Repaint)
             {
 
                 float lastone = GUILayoutUtility.GetLastRect().yMax;
 
-                if(lastone >= 1) this.maxchatlen = lastone;
+                if (lastone >= 1) this.maxchatlen = lastone;
 
                 this.currentCursor = this.chatScroll.y + this.bigownrect.height;
+
+                if (this.currentCursor >= this.maxchatlen * 0.99)
+                {
+                    this.scrollbarWasDown = true;
+                }
+                else
+                {
+                    this.scrollbarWasDown = false;
+                } 
             }
+            
 
             
         }
@@ -316,24 +366,28 @@ namespace Battlelog.Mod
                     {
                         this.ownMenu = 1;
                         cardListPopupSkin.label.fontSize = (int)(cardListPopupSkin.label.fontSize + 1);
-                        cardListPopupBigLabelSkin.label.fontSize = (int)(cardListPopupBigLabelSkin.label.fontSize + 1); 
+                        cardListPopupBigLabelSkin.label.fontSize = (int)(cardListPopupBigLabelSkin.label.fontSize + 1);
+                        this.sttngs.size = cardListPopupBigLabelSkin.label.fontSize;
+                        
                     }
                     if (GUILayout.Button("-"))
                     {
                         this.ownMenu = 0;
                         cardListPopupSkin.label.fontSize = (int)(cardListPopupSkin.label.fontSize - 1);
                         cardListPopupBigLabelSkin.label.fontSize = (int)(cardListPopupBigLabelSkin.label.fontSize - 1);
+                        this.sttngs.size = cardListPopupBigLabelSkin.label.fontSize;
                     }
-                    if (GUILayout.Button("Reset"))
+                    if (GUILayout.Button("Reset") && this.osize != 0)
                     {
                         this.ownMenu = 2;
                         cardListPopupSkin.label.fontSize = (int)(this.osize);
                         cardListPopupBigLabelSkin.label.fontSize = (int)(this.osize);
+                        this.sttngs.size = cardListPopupBigLabelSkin.label.fontSize;
                     }
 
-                    if (this.ownMenu == 2 && this.osize == 0)
+                    if (this.ownMenu == 2 || this.osize == 0)
                     {
-                        this.osize = cardListPopupBigLabelSkin.label.fontSize;
+                        
                     }
 
                     GUI.color = Color.white;
@@ -346,6 +400,55 @@ namespace Battlelog.Mod
                     GUI.color = Color.white;
                 }
 
+                if (i == 6)
+                {
+                    string text = "show Movement";
+                    GUI.color = Color.white;
+                    if (!this.sttngs.showMove)
+                    {
+                        text = "dont " + text;
+                        GUI.color = new Color(1f, 1f, 1f, 0.5f);
+                    }
+                    if (GUILayout.Button(text, glo))
+                    {
+                        this.sttngs.showMove = !this.sttngs.showMove;
+                    }
+                    GUI.color = Color.white;
+                }
+                if (i == 7)
+                {
+                    string text = "show all summons";
+                    GUI.color = Color.white;
+                    if (!this.sttngs.showsummon)
+                    {
+                        text = "dont " + text;
+                        GUI.color = new Color(1f, 1f, 1f, 0.5f);
+                    }
+                    if (GUILayout.Button(text, glo))
+                    {
+                        this.sttngs.showsummon = !this.sttngs.showsummon;
+                    }
+                    GUI.color = Color.white;
+                }
+
+                if (i == 8)
+                {
+                    string text = "open on battlestart";
+                    GUI.color = Color.white;
+                    if (!this.sttngs.openonStart)
+                    {
+                        text = "dont " + text;
+                        GUI.color = new Color(1f, 1f, 1f, 0.5f);
+                    }
+
+                    if (GUILayout.Button(text, glo))
+                    {
+                        this.sttngs.openonStart = !this.sttngs.openonStart;
+                    }
+                    GUI.color = Color.white;
+                }
+
+                
                 GUILayout.EndHorizontal();
             }
         }
@@ -356,10 +459,16 @@ namespace Battlelog.Mod
             float smallheight = (float)(((float)Screen.height) / 10f);
             float smallwidth = (float)(((float)Screen.width) / 10f);
             int smallstarty = Screen.height / 15;
-            int smallstartx = 0;
+            int smallstartx = 0;//0
 
             smallownrect = new Rect(smallstartx, smallstarty, 0.6f * smallwidth, 0.5f * smallheight);
             bigownrect = new Rect(smallstartx, smallstarty, 1.5f * smallwidth, 5 * smallheight);
+
+            if (this.optionmenu)
+            {
+                bigownrect.width *= 2;
+            }
+
             closeownrect = new Rect(smallstartx, bigownrect.yMax, smallwidth, 0.5f * smallheight);
             this.genrectown = new Rect(bigownrect.xMax, bigownrect.yMin, 0.5f * smallheight, 0.5f * smallheight);
             this.boardrectown = new Rect(bigownrect.xMax, bigownrect.yMin + 0.5f * smallheight, 0.5f * smallheight, 0.5f * smallheight);
